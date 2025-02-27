@@ -11,9 +11,6 @@ from django.conf import settings
 # Create your views here.
 @api_view(["POST"])
 def signUp(request):
-    # all_user = users.objects.all()
-    # serialzers = userSerialzer(all_user, many=True)
-    # return Response(serialzers.data)
     email = request.data.get('email')
     password = request.data.get('password')
     if users.objects.filter(email=email).exists():
@@ -33,14 +30,11 @@ def login(request):
     
     all_user = users.objects.all()
     serialzers = userSerialzer(all_user, many=True)
-    # payload = {}
-    # user = authenticate(request, email=email, password=password)
-    # if user is not None:
+
     for user in serialzers.data:
         if user['email'] == email and user['password'] == password :
             payload = {'email': user['email']}
             check = True
-    # if any(user['email'] == email and user['password'] == password for user in serialzers.data):
     if check:
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         return Response({'message': 'Login successful.', 'token': token}, status=status.HTTP_200_OK)
