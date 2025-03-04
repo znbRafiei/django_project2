@@ -3,9 +3,13 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
-from .serializer import userSerialzer
-from .models import users
+from .serializer import userSerialzer,DoctorSerializer
+from .models import users,Doctor
 from django.conf import settings
+from rest_framework import generics, permissions
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser
 
 
 # Create your views here.
@@ -40,3 +44,30 @@ def login(request):
         return Response({'message': 'Login successful.', 'token': token}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Invalid email or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class DoctorProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def post(self, request):
+        token = request.headers.get('Authorization').split(' ')[1]
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+
+        data = request.data
+        serializer = DoctorSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user_id=user_id)
+            return Response({
+                'success': True,
+                'message': 'Doctor profile created successfully.',
+                'doctor_id': serializer.data['id']
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'success': False,
+            'message': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        doctors = Doctor.objects.all()
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
