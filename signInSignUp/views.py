@@ -49,9 +49,19 @@ class DoctorProfileAPIView(APIView):
     permission_classes = [IsAuthenticated]  
 
     def post(self, request):
-        token = request.headers.get('Authorization').split(' ')[1]
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        user_id = payload.get('user_id')
+        try:
+            token = request.headers.get('Authorization').split(' ')[1]
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            email = payload.get('email')  
+            user = users.objects.get(email=email)  
+            user_id = user.id  
+
+        except jwt.ExpiredSignatureError:
+            return Response({'success': False, 'message': 'Token has expired.'}, status=status.HTTP_401_UNAUTHORIZED)
+        except jwt.InvalidTokenError:
+            return Response({'success': False, 'message': 'Invalid token.'}, status=status.HTTP_401_UNAUTHORIZED)
+        except users.DoesNotExist:
+            return Response({'success': False, 'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         data = request.data
         serializer = DoctorSerializer(data=data)
