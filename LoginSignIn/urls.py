@@ -21,7 +21,6 @@ from signInSignUp.views import (
     signUp,
     login,
     DoctorProfileAPIView,
-    protected_view
 )
 from django.urls import path
 from rest_framework import permissions
@@ -46,5 +45,4 @@ urlpatterns = [
     path("api/v1/auth/login/", login),
     path('api/v1/doctors/', DoctorProfileAPIView.as_view()),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('protected/', protected_view, name='protected'),
 ]
