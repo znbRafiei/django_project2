@@ -2,10 +2,11 @@ import jwt
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
-from .serializer import DoctorSerializer
-from .models import users, Doctor
+from .serializer import DoctorSerializer, BookingSerializer
+from .models import users, Doctor, Booking
 from django.conf import settings
 from rest_framework.views import APIView
+
 
 
 def generate_jwt_token(user):
@@ -125,3 +126,63 @@ class DoctorProfileAPIView(APIView):
         doctors = Doctor.objects.all()
         serializer = DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentBookingAPIView(APIView):
+    def post(self, request):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return Response(
+                {"success": False, "message": "Authorization header missing."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            token = auth_header.split(" ")[1]
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            email = payload.get("email")
+            user = users.objects.get(email=email)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, users.DoesNotExist):
+            return Response(
+                {"success": False, "message": "Invalid or expired token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        doctor_id = request.data.get("doctor_id")
+        date = request.data.get("date")
+        time_slot = request.data.get("time_slot")
+        
+        if not doctor_id or not date or not time_slot:
+            return Response(
+                {"success": False, "message": "Missing required fields."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        doctor = Doctor.objects.filter(id=doctor_id).first()
+        if not doctor:
+            return Response(
+                {"success": False, "message": "Doctor not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        existing_booking = Booking.objects.filter(
+            doctor=doctor, date=date, time_slot=time_slot
+        ).exists()
+        if existing_booking:
+            return Response(
+                {"success": False, "message": "Selected time slot is already booked."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        booking = Booking.objects.create(
+            user=user, doctor=doctor, date=date, time_slot=time_slot, status="confirmed"
+        )
+
+        serializer = BookingSerializer(booking)
+        return Response(
+            {
+                "success": True,
+                "message": "Booking confirmed!",
+                "booking": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

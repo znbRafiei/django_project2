@@ -1,5 +1,5 @@
 """
-URL configuration for LoginSignIn project.
+URL configuration for project project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -21,6 +21,7 @@ from signInSignUp.views import (
     signUp,
     login,
     DoctorProfileAPIView,
+    AppointmentBookingAPIView
 )
 from django.urls import path
 from rest_framework import permissions
@@ -45,4 +46,5 @@ urlpatterns = [
     path("api/v1/auth/login/", login),
     path('api/v1/doctors/', DoctorProfileAPIView.as_view()),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path("api/v1/appointments/", AppointmentBookingAPIView.as_view())
 ]
